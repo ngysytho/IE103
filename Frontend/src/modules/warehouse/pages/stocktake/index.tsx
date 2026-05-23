@@ -3,23 +3,32 @@ import { useEffect, useState } from 'react';
 import PageHeader from '../../../../components/page-header';
 import StocktakeForm from '../../../../components/stocktake-form';
 import { Employee, Product, Stocktake } from '../../types';
-import { warehouseMockService } from '../../services/warehouse.mock';
+import { employeeService } from '../../services/employee.service';
+import { productService } from '../../services/product.service';
+import { stocktakeService } from '../../services/stocktake.service';
+import { getErrorMessage } from '../../utils/errors';
+import { useAuth } from '../../auth/AuthContext';
 
 const StocktakePage = () => {
+    const { isManager } = useAuth();
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [stocktakes, setStocktakes] = useState<Stocktake[]>([]);
 
     const fetchData = async () => {
-        const [employeeRes, productRes, stocktakeRes] = await Promise.all([
-            warehouseMockService.getEmployees(),
-            warehouseMockService.getProducts(),
-            warehouseMockService.getStocktakes(),
-        ]);
+        try {
+            const [employeeRes, productRes, stocktakeRes] = await Promise.all([
+                employeeService.getAll(),
+                productService.getAll(),
+                stocktakeService.getAll(),
+            ]);
 
-        setEmployees(employeeRes);
-        setProducts(productRes);
-        setStocktakes(stocktakeRes);
+            setEmployees(employeeRes);
+            setProducts(productRes);
+            setStocktakes(stocktakeRes);
+        } catch (error) {
+            message.error(getErrorMessage(error));
+        }
     };
 
     useEffect(() => {
@@ -65,10 +74,15 @@ const StocktakePage = () => {
                                     {record.status !== 'approved' ? (
                                         <Button
                                             type="primary"
+                                            disabled={!isManager}
                                             onClick={async () => {
-                                                await warehouseMockService.approveStocktake(record.maPkk);
-                                                message.success('Duyệt phiếu kiểm kê thành công');
-                                                void fetchData();
+                                                try {
+                                                    await stocktakeService.approve(record.maPkk);
+                                                    message.success('Duyệt phiếu kiểm kê thành công');
+                                                    void fetchData();
+                                                } catch (error) {
+                                                    message.error(getErrorMessage(error));
+                                                }
                                             }}
                                         >
                                             Duyệt cập nhật

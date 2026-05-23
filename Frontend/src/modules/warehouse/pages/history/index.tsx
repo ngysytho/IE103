@@ -1,8 +1,10 @@
-import { Card, DatePicker, Space, Table, Tabs } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { Card, Table, Tabs, message } from 'antd';
+import { useEffect, useState } from 'react';
 import PageHeader from '../../../../components/page-header';
 import { Issue, Receipt } from '../../types';
-import { warehouseMockService } from '../../services/warehouse.mock';
+import { issueService } from '../../services/issue.service';
+import { receiptService } from '../../services/receipt.service';
+import { getErrorMessage } from '../../utils/errors';
 
 const HistoryPage = () => {
     const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -10,12 +12,16 @@ const HistoryPage = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const [receiptRes, issueRes] = await Promise.all([
-                warehouseMockService.getReceipts(),
-                warehouseMockService.getIssues(),
-            ]);
-            setReceipts(receiptRes);
-            setIssues(issueRes);
+            try {
+                const [receiptRes, issueRes] = await Promise.all([
+                    receiptService.getAll(),
+                    issueService.getAll(),
+                ]);
+                setReceipts(receiptRes);
+                setIssues(issueRes);
+            } catch (error) {
+                message.error(getErrorMessage(error));
+            }
         };
 
         void fetchData();

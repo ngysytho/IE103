@@ -18,7 +18,7 @@ export interface Product {
 export interface Partner {
     maDt: string;
     tenDt: string;
-    diaChi: string;
+    dchi: string;
     sdt: string;
     loaiDt: PartnerType;
 }
@@ -84,4 +84,38 @@ export interface DashboardSummary {
     totalEmployees: number;
     totalStock: number;
     lowStockCount: number;
+}
+
+export interface AuthUser {
+    email: string;
+    token: string;
+    maNv: string;
+    tenNv: string;
+    loaiNv: EmployeeType;
+    role: 'nhom_quan_ly' | 'nhom_nv_nhap' | 'nhom_nv_xuat';
+}
+
+export interface LowStockReport {
+    maSp: string;
+    tenSp: string;
+    dvt: string;
+    soLuongTon: number;
+}
+
+export interface ImportByPartnerReport {
+    maDt: string;
+    tenDt: string;
+    tongSoPhieu: number;
+    tongGiaTri: number;
+}
+
+export interface StocktakeDifferenceReport {
+    maPkk: string;
+    ngayKk: string;
+    maSp: string;
+    tenSp: string;
+    slHeThong: number;
+    slThucTe: number;
+    chenhLech: number;
+    lyDo: string;
 }

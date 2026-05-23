@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import PageHeader from '../../../../components/page-header';
 import { PARTNER_TYPE_OPTIONS } from '../../constants/options';
 import { Partner } from '../../types';
-import { warehouseMockService } from '../../services/warehouse.mock';
+import { partnerService } from '../../services/partner.service';
+import { getErrorMessage } from '../../utils/errors';
 
 const renderPartnerType = (value: number) => {
     if (value === 0) return <Tag color="blue">Khách hàng</Tag>;
@@ -17,8 +18,12 @@ const PartnersPage = () => {
     const [form] = Form.useForm<Partner>();
 
     const fetchData = async () => {
-        const res = await warehouseMockService.getPartners();
-        setItems(res);
+        try {
+            const res = await partnerService.getAll();
+            setItems(res);
+        } catch (error) {
+            message.error(getErrorMessage(error));
+        }
     };
 
     useEffect(() => {
@@ -60,11 +65,16 @@ const PartnersPage = () => {
                 title="Thêm đối tác"
                 onCancel={() => setOpen(false)}
                 onOk={async () => {
-                    const values = await form.validateFields();
-                    setItems((prev) => [values, ...prev]);
-                    message.success('Thêm đối tác thành công');
-                    form.resetFields();
-                    setOpen(false);
+                    try {
+                        const values = await form.validateFields();
+                        await partnerService.create(values);
+                        await fetchData();
+                        message.success('Thêm đối tác thành công');
+                        form.resetFields();
+                        setOpen(false);
+                    } catch (error) {
+                        message.error(getErrorMessage(error));
+                    }
                 }}
             >
                 <Form form={form} layout="vertical">

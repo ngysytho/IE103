@@ -1,5 +1,6 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import {
+    Alert,
     Button,
     Card,
     DatePicker,
@@ -11,10 +12,12 @@ import {
     message,
 } from 'antd';
 import dayjs from 'dayjs';
+import { useEffect, useState } from 'react';
 import { Employee, Product, Stocktake } from '../../modules/warehouse/types';
-import { warehouseMockService } from '../../modules/warehouse/services/warehouse.mock';
-
-// giữ nguyên code StocktakeForm của bạn
+import { stocktakeService } from '../../modules/warehouse/services/stocktake.service';
+import { useAuth } from '../../modules/warehouse/auth/AuthContext';
+import { getErrorMessage } from '../../modules/warehouse/utils/errors';
+import { nextDocumentCode } from '../../modules/warehouse/utils/ids';
 
 interface StocktakeFormProps {
     employees: Employee[];
@@ -23,7 +26,28 @@ interface StocktakeFormProps {
 }
 
 const StocktakeForm = ({ employees, products, onSuccess }: StocktakeFormProps) => {
+    const { user } = useAuth();
     const [form] = Form.useForm();
+    const [lastError, setLastError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (user) {
+            form.setFieldsValue({ maNv: user.maNv });
+        }
+    }, [form, user]);
+
+    useEffect(() => {
+        const product = products[0];
+        const currentItems = form.getFieldValue('items');
+
+        form.setFieldsValue({
+            maPkk: form.getFieldValue('maPkk') || nextDocumentCode('KK'),
+            items:
+                currentItems?.[0]?.maSp || !product
+                    ? currentItems
+                    : [{ maSp: product.maSp, slThucTe: product.soLuongTon, lyDo: '' }],
+        });
+    }, [form, products]);
 
     const employeeOptions = employees.map((item) => ({
         label: `${item.tenNv} - ${item.maNv}`,
@@ -36,33 +60,55 @@ const StocktakeForm = ({ employees, products, onSuccess }: StocktakeFormProps) =
     }));
 
     const handleSubmit = async () => {
-        const values = await form.validateFields();
+        try {
+            setLastError(null);
+            const values = await form.validateFields();
+            const selectedProducts = values.items.map((item: { maSp: string }) => item.maSp);
+            const hasDuplicateProduct = new Set(selectedProducts).size !== selectedProducts.length;
 
-        const payload: Stocktake = {
-            maPkk: values.maPkk,
-            ngayKk: values.ngayKk.format('YYYY-MM-DD'),
-            maNv: values.maNv,
-            ghiChu: values.ghiChu ?? '',
-            status: 'pending',
-            items: values.items.map(
-                (item: { maSp: string; slThucTe: number; lyDo: string }) => {
-                    const product = products.find((p) => p.maSp === item.maSp);
+            if (hasDuplicateProduct) {
+                throw new Error('Mỗi sản phẩm chỉ được chọn một dòng trong phiếu kiểm kê');
+            }
 
-                    return {
-                        maSp: item.maSp,
-                        tenSp: product?.tenSp,
-                        slHeThong: product?.soLuongTon ?? 0,
-                        slThucTe: item.slThucTe,
-                        lyDo: item.lyDo ?? '',
-                    };
-                },
-            ),
-        };
+            const payload: Stocktake = {
+                maPkk: values.maPkk,
+                ngayKk: values.ngayKk.format('YYYY-MM-DD'),
+                maNv: user?.maNv ?? values.maNv,
+                ghiChu: values.ghiChu ?? '',
+                status: 'pending',
+                items: values.items.map(
+                    (item: { maSp: string; slThucTe: number; lyDo: string }) => {
+                        const product = products.find((p) => p.maSp === item.maSp);
 
-        await warehouseMockService.createStocktake(payload);
-        message.success('Tạo phiếu kiểm kê thành công');
-        form.resetFields();
-        onSuccess?.();
+                        return {
+                            maSp: item.maSp,
+                            tenSp: product?.tenSp,
+                            slHeThong: product?.soLuongTon ?? 0,
+                            slThucTe: item.slThucTe,
+                            lyDo: item.lyDo ?? '',
+                        };
+                    },
+                ),
+            };
+
+            await stocktakeService.create(payload);
+            message.success('Tạo phiếu kiểm kê thành công');
+            form.resetFields();
+            const product = products[0];
+            form.setFieldsValue({
+                maPkk: nextDocumentCode('KK'),
+                maNv: user?.maNv,
+                ngayKk: dayjs(),
+                items: product
+                    ? [{ maSp: product.maSp, slThucTe: product.soLuongTon, lyDo: '' }]
+                    : [{ maSp: undefined, slThucTe: 0, lyDo: '' }],
+            });
+            onSuccess?.();
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+            setLastError(errorMessage);
+            message.error(errorMessage);
+        }
     };
 
     return (
@@ -71,13 +117,18 @@ const StocktakeForm = ({ employees, products, onSuccess }: StocktakeFormProps) =
                 form={form}
                 layout="vertical"
                 initialValues={{
+                    maPkk: nextDocumentCode('KK'),
                     ngayKk: dayjs(),
                     items: [{ maSp: undefined, slThucTe: 0, lyDo: '' }],
                 }}
             >
-                <Space style={{ width: '100%' }} size={16} align="start">
+                {lastError ? (
+                    <Alert type="error" message={lastError} showIcon style={{ marginBottom: 16 }} />
+                ) : null}
+
+                <Space style={{ width: '100%' }} size={16} align="start" wrap>
                     <Form.Item name="maPkk" label="Mã phiếu kiểm kê" rules={[{ required: true }]}>
-                        <Input style={{ width: 220 }} />
+                        <Input readOnly style={{ width: 220 }} />
                     </Form.Item>
 
                     <Form.Item name="ngayKk" label="Ngày kiểm kê" rules={[{ required: true }]}>
@@ -85,7 +136,7 @@ const StocktakeForm = ({ employees, products, onSuccess }: StocktakeFormProps) =
                     </Form.Item>
 
                     <Form.Item name="maNv" label="Nhân viên kiểm kê" rules={[{ required: true }]}>
-                        <Select style={{ width: 260 }} options={employeeOptions} />
+                        <Select style={{ width: 260 }} options={employeeOptions} disabled />
                     </Form.Item>
 
                     <Form.Item name="ghiChu" label="Ghi chú">
@@ -97,7 +148,7 @@ const StocktakeForm = ({ employees, products, onSuccess }: StocktakeFormProps) =
                     {(fields, { add, remove }) => (
                         <>
                             {fields.map((field) => (
-                                <Space key={field.key} style={{ display: 'flex', marginBottom: 12 }} align="start">
+                                <Space key={field.key} style={{ display: 'flex', marginBottom: 12 }} align="start" wrap>
                                     <Form.Item
                                         {...field}
                                         name={[field.name, 'maSp']}

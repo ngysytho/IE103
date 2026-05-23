@@ -15,7 +15,7 @@ export const mapProductDto = (row: any) => ({
 export const mapPartnerDto = (row: any) => ({
     maDt: row.MADT ?? row.maDt,
     tenDt: row.TENDT ?? row.tenDt,
-    diaChi: row.DIACHI ?? row.DCHI ?? row.diaChi,
+    dchi: row.DCHI ?? row.dchi ?? row.diaChi,
     sdt: row.SDT ?? row.sdt,
     loaiDt: Number(row.LOAIDT ?? row.loaiDt ?? 0),
 });

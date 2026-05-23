@@ -1,9 +1,13 @@
-import { Card, Table } from 'antd';
+import { Card, Table, message } from 'antd';
 import { useEffect, useState } from 'react';
 import PageHeader from '../../../../components/page-header';
 import OutboundForm from '../../../../components/outbound-form';
 import { Employee, Issue, Partner, Product } from '../../types';
-import { warehouseMockService } from '../../services/warehouse.mock';
+import { employeeService } from '../../services/employee.service';
+import { issueService } from '../../services/issue.service';
+import { partnerService } from '../../services/partner.service';
+import { productService } from '../../services/product.service';
+import { getErrorMessage } from '../../utils/errors';
 
 const OutboundPage = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -12,17 +16,21 @@ const OutboundPage = () => {
     const [issues, setIssues] = useState<Issue[]>([]);
 
     const fetchData = async () => {
-        const [employeeRes, partnerRes, productRes, issueRes] = await Promise.all([
-            warehouseMockService.getEmployees(),
-            warehouseMockService.getPartners(),
-            warehouseMockService.getProducts(),
-            warehouseMockService.getIssues(),
-        ]);
+        try {
+            const [employeeRes, partnerRes, productRes, issueRes] = await Promise.all([
+                employeeService.getAll(),
+                partnerService.getAll(),
+                productService.getAll(),
+                issueService.getAll(),
+            ]);
 
-        setEmployees(employeeRes);
-        setPartners(partnerRes);
-        setProducts(productRes);
-        setIssues(issueRes);
+            setEmployees(employeeRes);
+            setPartners(partnerRes);
+            setProducts(productRes);
+            setIssues(issueRes);
+        } catch (error) {
+            message.error(getErrorMessage(error));
+        }
     };
 
     useEffect(() => {

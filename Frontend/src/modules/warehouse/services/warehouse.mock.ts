@@ -37,14 +37,14 @@ const partners: Partner[] = [
     {
         maDt: 'DT001',
         tenDt: 'Công ty ABC',
-        diaChi: 'Q1, TP.HCM',
+        dchi: 'Q1, TP.HCM',
         sdt: '0909123456',
         loaiDt: 1,
     },
     {
         maDt: 'DT002',
         tenDt: 'Khách hàng Minh',
-        diaChi: 'Q10, TP.HCM',
+        dchi: 'Q10, TP.HCM',
         sdt: '0911222333',
         loaiDt: 0,
     },

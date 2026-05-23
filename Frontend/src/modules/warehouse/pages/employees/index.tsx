@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import PageHeader from '../../../../components/page-header';
 import { EMPLOYEE_TYPE_OPTIONS } from '../../constants/options';
 import { Employee } from '../../types';
-import { warehouseMockService } from '../../services/warehouse.mock';
+import { employeeService } from '../../services/employee.service';
+import { getErrorMessage } from '../../utils/errors';
 
 const renderEmployeeType = (value: number) => {
     if (value === 0) return <Tag color="gold">Quản lý</Tag>;
@@ -18,8 +19,12 @@ const EmployeesPage = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const res = await warehouseMockService.getEmployees();
-            setItems(res);
+            try {
+                const res = await employeeService.getAll();
+                setItems(res);
+            } catch (error) {
+                message.error(getErrorMessage(error));
+            }
         };
 
         void fetchData();
@@ -56,11 +61,17 @@ const EmployeesPage = () => {
                 title="Thêm nhân viên"
                 onCancel={() => setOpen(false)}
                 onOk={async () => {
-                    const values = await form.validateFields();
-                    setItems((prev) => [values, ...prev]);
-                    message.success('Thêm nhân viên thành công');
-                    form.resetFields();
-                    setOpen(false);
+                    try {
+                        const values = await form.validateFields();
+                        await employeeService.create(values);
+                        const res = await employeeService.getAll();
+                        setItems(res);
+                        message.success('Thêm nhân viên thành công');
+                        form.resetFields();
+                        setOpen(false);
+                    } catch (error) {
+                        message.error(getErrorMessage(error));
+                    }
                 }}
             >
                 <Form form={form} layout="vertical">

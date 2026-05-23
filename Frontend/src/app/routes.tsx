@@ -9,6 +9,7 @@ import InboundPage from '../modules/warehouse/pages/inbound';
 import OutboundPage from '../modules/warehouse/pages/outbound';
 import StocktakePage from '../modules/warehouse/pages/stocktake';
 import HistoryPage from '../modules/warehouse/pages/history';
+import LoginPage from '../modules/warehouse/pages/login';
 
 import { Navigate } from 'react-router-dom';
 
@@ -16,6 +17,10 @@ export const router = createBrowserRouter([
     {
         path: '/',
         element: <Navigate to="/warehouse/dashboard" />,
+    },
+    {
+        path: '/login',
+        element: <LoginPage />,
     },
     {
         path: '/warehouse',

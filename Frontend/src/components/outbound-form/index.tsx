@@ -1,5 +1,6 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import {
+    Alert,
     Button,
     Card,
     DatePicker,
@@ -11,10 +12,12 @@ import {
     message,
 } from 'antd';
 import dayjs from 'dayjs';
+import { useEffect, useState } from 'react';
 import { Employee, Partner, Product, Issue } from '../../modules/warehouse/types';
-import { warehouseMockService } from '../../modules/warehouse/services/warehouse.mock';
-
-// giữ nguyên code OutboundForm của bạn
+import { issueService } from '../../modules/warehouse/services/issue.service';
+import { useAuth } from '../../modules/warehouse/auth/AuthContext';
+import { getErrorMessage } from '../../modules/warehouse/utils/errors';
+import { nextDocumentCode } from '../../modules/warehouse/utils/ids';
 
 interface OutboundFormProps {
     employees: Employee[];
@@ -24,21 +27,46 @@ interface OutboundFormProps {
 }
 
 const OutboundForm = ({ employees, partners, products, onSuccess }: OutboundFormProps) => {
+    const { user } = useAuth();
     const [form] = Form.useForm();
+    const [lastError, setLastError] = useState<string | null>(null);
 
-    const customerOptions = partners
-        .filter((item) => item.loaiDt === 0 || item.loaiDt === 2)
-        .map((item) => ({
-            label: `${item.tenDt} - ${item.maDt}`,
-            value: item.maDt,
-        }));
+    useEffect(() => {
+        if (user) {
+            form.setFieldsValue({ maNv: user.maNv });
+        }
+    }, [form, user]);
 
-    const employeeOptions = employees
-        .filter((item) => item.loaiNv === 0 || item.loaiNv === 2)
-        .map((item) => ({
-            label: `${item.tenNv} - ${item.maNv}`,
-            value: item.maNv,
-        }));
+    useEffect(() => {
+        const customer = partners.find((item) => item.loaiDt === 0 || item.loaiDt === 2);
+        const product = products.find((item) => item.soLuongTon > 0) ?? products[0];
+        const currentItems = form.getFieldValue('items');
+
+        form.setFieldsValue({
+            maPx: form.getFieldValue('maPx') || nextDocumentCode('PX'),
+            maDt: form.getFieldValue('maDt') || customer?.maDt,
+            items:
+                currentItems?.[0]?.maSp || !product
+                    ? currentItems
+                    : [{ maSp: product.maSp, soLuong: 1, donGia: product.giaNhap || 1 }],
+        });
+    }, [form, partners, products]);
+
+    const partnerTypeText = (value: number) => {
+        if (value === 0) return 'Khách hàng';
+        if (value === 1) return 'Nhà cung cấp';
+        return 'Cả hai';
+    };
+
+    const partnerOptions = partners.map((item) => ({
+        label: `${item.tenDt} - ${item.maDt} (${partnerTypeText(item.loaiDt)})`,
+        value: item.maDt,
+    }));
+
+    const employeeOptions = employees.map((item) => ({
+        label: `${item.tenNv} - ${item.maNv}`,
+        value: item.maNv,
+    }));
 
     const productOptions = products.map((item) => ({
         label: `${item.tenSp} - ${item.maSp} (Tồn: ${item.soLuongTon})`,
@@ -46,34 +74,43 @@ const OutboundForm = ({ employees, partners, products, onSuccess }: OutboundForm
     }));
 
     const handleSubmit = async () => {
-        const values = await form.validateFields();
+        try {
+            setLastError(null);
+            const values = await form.validateFields();
+            const selectedProducts = values.items.map((item: { maSp: string }) => item.maSp);
+            const hasDuplicateProduct = new Set(selectedProducts).size !== selectedProducts.length;
 
-        values.items.forEach((item: { maSp: string; soLuong: number }) => {
-            const product = products.find((p) => p.maSp === item.maSp);
-
-            if (!product) {
-                throw new Error(`Không tìm thấy sản phẩm ${item.maSp}`);
+            if (hasDuplicateProduct) {
+                throw new Error('Mỗi sản phẩm chỉ được chọn một dòng trong phiếu xuất');
             }
 
-            if (item.soLuong > product.soLuongTon) {
-                throw new Error(
-                    `Sản phẩm ${product.tenSp} chỉ còn ${product.soLuongTon}, không đủ để xuất ${item.soLuong}`,
-                );
-            }
-        });
+            const payload: Issue = {
+                maPx: values.maPx,
+                ngayXuat: values.ngayXuat.format('YYYY-MM-DD'),
+                maNv: user?.maNv ?? values.maNv,
+                maDt: values.maDt,
+                items: values.items,
+            };
 
-        const payload: Issue = {
-            maPx: values.maPx,
-            ngayXuat: values.ngayXuat.format('YYYY-MM-DD'),
-            maNv: values.maNv,
-            maDt: values.maDt,
-            items: values.items,
-        };
-
-        await warehouseMockService.createIssue(payload);
-        message.success('Lập phiếu xuất thành công');
-        form.resetFields();
-        onSuccess?.();
+            await issueService.create(payload);
+            message.success('Lập phiếu xuất thành công bằng sp_LapPhieuXuat');
+            form.resetFields();
+            const product = products.find((item) => item.soLuongTon > 0) ?? products[0];
+            form.setFieldsValue({
+                maPx: nextDocumentCode('PX'),
+                maNv: user?.maNv,
+                ngayXuat: dayjs(),
+                maDt: partners.find((item) => item.loaiDt === 0 || item.loaiDt === 2)?.maDt,
+                items: product
+                    ? [{ maSp: product.maSp, soLuong: 1, donGia: product.giaNhap || 1 }]
+                    : [{ maSp: undefined, soLuong: 1, donGia: 1 }],
+            });
+            onSuccess?.();
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+            setLastError(errorMessage);
+            message.error(errorMessage);
+        }
     };
 
     return (
@@ -82,13 +119,18 @@ const OutboundForm = ({ employees, partners, products, onSuccess }: OutboundForm
                 form={form}
                 layout="vertical"
                 initialValues={{
+                    maPx: nextDocumentCode('PX'),
                     ngayXuat: dayjs(),
                     items: [{ maSp: undefined, soLuong: 1, donGia: 1 }],
                 }}
             >
-                <Space style={{ width: '100%' }} size={16} align="start">
+                {lastError ? (
+                    <Alert type="error" message={lastError} showIcon style={{ marginBottom: 16 }} />
+                ) : null}
+
+                <Space style={{ width: '100%' }} size={16} align="start" wrap>
                     <Form.Item name="maPx" label="Mã phiếu xuất" rules={[{ required: true }]}>
-                        <Input style={{ width: 220 }} />
+                        <Input readOnly style={{ width: 220 }} />
                     </Form.Item>
 
                     <Form.Item name="ngayXuat" label="Ngày xuất" rules={[{ required: true }]}>
@@ -96,11 +138,11 @@ const OutboundForm = ({ employees, partners, products, onSuccess }: OutboundForm
                     </Form.Item>
 
                     <Form.Item name="maNv" label="Nhân viên xuất" rules={[{ required: true }]}>
-                        <Select style={{ width: 260 }} options={employeeOptions} />
+                        <Select style={{ width: 260 }} options={employeeOptions} disabled />
                     </Form.Item>
 
                     <Form.Item name="maDt" label="Khách hàng" rules={[{ required: true }]}>
-                        <Select style={{ width: 260 }} options={customerOptions} />
+                        <Select style={{ width: 300 }} options={partnerOptions} />
                     </Form.Item>
                 </Space>
 
@@ -108,7 +150,7 @@ const OutboundForm = ({ employees, partners, products, onSuccess }: OutboundForm
                     {(fields, { add, remove }) => (
                         <>
                             {fields.map((field) => (
-                                <Space key={field.key} style={{ display: 'flex', marginBottom: 12 }} align="start">
+                                <Space key={field.key} style={{ display: 'flex', marginBottom: 12 }} align="start" wrap>
                                     <Form.Item
                                         {...field}
                                         name={[field.name, 'maSp']}

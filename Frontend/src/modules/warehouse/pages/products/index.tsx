@@ -14,7 +14,9 @@ import { useEffect, useState } from 'react';
 import PageHeader from '../../../../components/page-header';
 import StockBadge from '../../../../components/stock-badge';
 import { Category, Product } from '../../types';
-import { warehouseMockService } from '../../services/warehouse.mock';
+import { categoryService } from '../../services/category.service';
+import { productService } from '../../services/product.service';
+import { getErrorMessage } from '../../utils/errors';
 
 const ProductsPage = () => {
     const [items, setItems] = useState<Product[]>([]);
@@ -23,13 +25,17 @@ const ProductsPage = () => {
     const [form] = Form.useForm<Product>();
 
     const fetchData = async () => {
-        const [products, categories] = await Promise.all([
-            warehouseMockService.getProducts(),
-            warehouseMockService.getCategories(),
-        ]);
+        try {
+            const [products, categories] = await Promise.all([
+                productService.getAll(),
+                categoryService.getAll(),
+            ]);
 
-        setItems(products);
-        setCategories(categories);
+            setItems(products);
+            setCategories(categories);
+        } catch (error) {
+            message.error(getErrorMessage(error));
+        }
     };
 
     useEffect(() => {
@@ -76,11 +82,16 @@ const ProductsPage = () => {
                 title="Thêm sản phẩm"
                 onCancel={() => setOpen(false)}
                 onOk={async () => {
-                    const values = await form.validateFields();
-                    setItems((prev) => [values, ...prev]);
-                    form.resetFields();
-                    setOpen(false);
-                    message.success('Thêm sản phẩm thành công');
+                    try {
+                        const values = await form.validateFields();
+                        await productService.create(values);
+                        await fetchData();
+                        form.resetFields();
+                        setOpen(false);
+                        message.success('Thêm sản phẩm thành công');
+                    } catch (error) {
+                        message.error(getErrorMessage(error));
+                    }
                 }}
             >
                 <Form form={form} layout="vertical" initialValues={{ soLuongTon: 0 }}>
