@@ -10,6 +10,7 @@ import OutboundPage from '../modules/warehouse/pages/outbound';
 import StocktakePage from '../modules/warehouse/pages/stocktake';
 import HistoryPage from '../modules/warehouse/pages/history';
 import LoginPage from '../modules/warehouse/pages/login';
+import RequireRole from '../modules/warehouse/auth/RequireRole';
 
 import { Navigate } from 'react-router-dom';
 
@@ -30,9 +31,30 @@ export const router = createBrowserRouter([
             { path: 'categories', element: <CategoriesPage /> },
             { path: 'products', element: <ProductsPage /> },
             { path: 'partners', element: <PartnersPage /> },
-            { path: 'employees', element: <EmployeesPage /> },
-            { path: 'inbound', element: <InboundPage /> },
-            { path: 'outbound', element: <OutboundPage /> },
+            {
+                path: 'employees',
+                element: (
+                    <RequireRole roles={[0]}>
+                        <EmployeesPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: 'inbound',
+                element: (
+                    <RequireRole roles={[0, 1]}>
+                        <InboundPage />
+                    </RequireRole>
+                ),
+            },
+            {
+                path: 'outbound',
+                element: (
+                    <RequireRole roles={[0, 2]}>
+                        <OutboundPage />
+                    </RequireRole>
+                ),
+            },
             { path: 'stocktake', element: <StocktakePage /> },
             { path: 'history', element: <HistoryPage /> },
         ],

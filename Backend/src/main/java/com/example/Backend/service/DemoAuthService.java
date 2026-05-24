@@ -17,11 +17,11 @@ import java.util.Base64;
 
 @Service
 public class DemoAuthService {
-    private final WarehouseService warehouseService;
+    private final EmployeeCrudService employeeCrudService;
     private final JdbcTemplate jdbcTemplate;
 
-    public DemoAuthService(WarehouseService warehouseService, JdbcTemplate jdbcTemplate) {
-        this.warehouseService = warehouseService;
+    public DemoAuthService(EmployeeCrudService employeeCrudService, JdbcTemplate jdbcTemplate) {
+        this.employeeCrudService = employeeCrudService;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -66,7 +66,7 @@ public class DemoAuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Sai email hoặc mật khẩu");
         }
 
-        EmployeeDto employee = warehouseService.getEmployee(account.maNv());
+        EmployeeDto employee = employeeCrudService.getEmployee(account.maNv());
         return toAuthUser(email, employee);
     }
 
@@ -115,7 +115,7 @@ public class DemoAuthService {
                 request.loaiNv()
         );
 
-        return toAuthUser(email, warehouseService.getEmployee(maNv));
+        return toAuthUser(email, employeeCrudService.getEmployee(maNv));
     }
 
     public AuthUserDto requireUser(HttpServletRequest request) {
@@ -126,7 +126,7 @@ public class DemoAuthService {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập");
         }
 
-        EmployeeDto employee = warehouseService.getEmployee(account.maNv());
+        EmployeeDto employee = employeeCrudService.getEmployee(account.maNv());
         return toAuthUser(email, employee);
     }
 

@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS TAIKHOAN (
 );
 
 INSERT INTO TAIKHOAN (EMAIL, MATKHAU, HOTEN, MANV, LOAINV) VALUES
-('quanly@ie103.local', '123456', 'Nhóm Quản lý', 'NVQL0001', 0),
-('nhapkho@ie103.local', '123456', 'Nhóm NV Nhập kho', 'NVNH0001', 1),
-('xuatkho@ie103.local', '123456', 'Nhóm NV Xuất kho', 'NVXU0001', 2)
+('quanly@gmail.com', '123456', 'Nhóm Quản lý', 'NVQL0001', 0),
+('nhapkho@gmail.com', '123456', 'Nhóm NV Nhập kho', 'NVNH0001', 1),
+('xuatkho@gmail.com', '123456', 'Nhóm NV Xuất kho', 'NVXU0001', 2)
 ON CONFLICT (EMAIL) DO NOTHING;

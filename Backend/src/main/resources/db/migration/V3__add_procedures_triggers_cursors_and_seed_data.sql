@@ -324,10 +324,10 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_cap_nhat_ton_kho_xuat();
 
 CREATE OR REPLACE PROCEDURE sp_lapphieunhap(
-    p_mapn CHAR(8),
-    p_ngaynhap DATE,
-    p_manv CHAR(8),
-    p_madt CHAR(8),
+    p_mapn VARCHAR,
+    p_ngaynhap VARCHAR,
+    p_manv VARCHAR,
+    p_madt VARCHAR,
     p_items JSONB
 )
 LANGUAGE plpgsql
@@ -335,19 +335,23 @@ AS $$
 DECLARE
     v_item JSONB;
 BEGIN
-    IF p_items IS NULL OR jsonb_array_length(p_items) = 0 THEN
+    IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' THEN
+        RAISE EXCEPTION 'Phiếu nhập phải có ít nhất một sản phẩm!';
+    END IF;
+
+    IF jsonb_array_length(p_items) = 0 THEN
         RAISE EXCEPTION 'Phiếu nhập phải có ít nhất một sản phẩm!';
     END IF;
 
     INSERT INTO PHIEUNHAP (MAPN, NGAYNHAP, MANV, MADT)
-    VALUES (p_mapn, p_ngaynhap, p_manv, p_madt);
+    VALUES (CAST(p_mapn AS CHAR(8)), CAST(p_ngaynhap AS DATE), CAST(p_manv AS CHAR(8)), CAST(p_madt AS CHAR(8)));
 
     FOR v_item IN SELECT value FROM jsonb_array_elements(p_items)
     LOOP
         INSERT INTO CT_PHIEUNHAP (MAPN, MASP, SOLUONG, DONGIA)
         VALUES (
-            p_mapn,
-            v_item ->> 'maSp',
+            CAST(p_mapn AS CHAR(8)),
+            CAST(v_item ->> 'maSp' AS CHAR(8)),
             (v_item ->> 'soLuong')::DOUBLE PRECISION,
             (v_item ->> 'donGia')::DOUBLE PRECISION
         );
@@ -356,10 +360,10 @@ END;
 $$;
 
 CREATE OR REPLACE PROCEDURE sp_lapphieuxuat(
-    p_mapx CHAR(8),
-    p_ngayxuat DATE,
-    p_manv CHAR(8),
-    p_madt CHAR(8),
+    p_mapx VARCHAR,
+    p_ngayxuat VARCHAR,
+    p_manv VARCHAR,
+    p_madt VARCHAR,
     p_items JSONB
 )
 LANGUAGE plpgsql
@@ -367,19 +371,23 @@ AS $$
 DECLARE
     v_item JSONB;
 BEGIN
-    IF p_items IS NULL OR jsonb_array_length(p_items) = 0 THEN
+    IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' THEN
+        RAISE EXCEPTION 'Phiếu xuất phải có ít nhất một sản phẩm!';
+    END IF;
+
+    IF jsonb_array_length(p_items) = 0 THEN
         RAISE EXCEPTION 'Phiếu xuất phải có ít nhất một sản phẩm!';
     END IF;
 
     INSERT INTO PHIEUXUAT (MAPX, NGAYXUAT, MANV, MADT)
-    VALUES (p_mapx, p_ngayxuat, p_manv, p_madt);
+    VALUES (CAST(p_mapx AS CHAR(8)), CAST(p_ngayxuat AS DATE), CAST(p_manv AS CHAR(8)), CAST(p_madt AS CHAR(8)));
 
     FOR v_item IN SELECT value FROM jsonb_array_elements(p_items)
     LOOP
         INSERT INTO CT_PHIEUXUAT (MAPX, MASP, SOLUONG, DONGIA)
         VALUES (
-            p_mapx,
-            v_item ->> 'maSp',
+            CAST(p_mapx AS CHAR(8)),
+            CAST(v_item ->> 'maSp' AS CHAR(8)),
             (v_item ->> 'soLuong')::DOUBLE PRECISION,
             (v_item ->> 'donGia')::DOUBLE PRECISION
         );
@@ -442,7 +450,7 @@ DECLARE
         JOIN PHIEUNHAP PN ON PN.MADT = D.MADT
         JOIN CT_PHIEUNHAP CT ON CT.MAPN = PN.MAPN
         GROUP BY D.MADT, D.TENDT
-        ORDER BY tong_gia_tri DESC;
+        ORDER BY COALESCE(SUM(CT.SOLUONG * CT.DONGIA), 0)::DOUBLE PRECISION DESC, D.MADT ASC;
     rec RECORD;
 BEGIN
     OPEN cur;
@@ -537,7 +545,7 @@ INSERT INTO NHANVIEN (MANV, TENNV, DCHI, SDT, LOAINV) VALUES
 ON CONFLICT (MANV) DO NOTHING;
 
 INSERT INTO PHIEUNHAP (MAPN, NGAYNHAP, MANV, MADT) VALUES
-('PN000001', CURRENT_DATE - INTERVAL '3 day', 'NVNH0001', 'DT000001')
+('PN000001', CURRENT_DATE - 3, 'NVNH0001', 'DT000001')
 ON CONFLICT (MAPN) DO NOTHING;
 
 INSERT INTO CT_PHIEUNHAP (MAPN, MASP, SOLUONG, DONGIA) VALUES
@@ -545,7 +553,7 @@ INSERT INTO CT_PHIEUNHAP (MAPN, MASP, SOLUONG, DONGIA) VALUES
 ON CONFLICT (MAPN, MASP) DO NOTHING;
 
 INSERT INTO PHIEUKIEMKE (MAPKK, NGAYKK, MANV, GHICHU, TRANGTHAI) VALUES
-('KK000001', CURRENT_DATE - INTERVAL '1 day', 'NVQL0001', 'Mẫu kiểm kê có chênh lệch để demo Cursor', 'pending')
+('KK000001', CURRENT_DATE - 1, 'NVQL0001', 'Mẫu kiểm kê có chênh lệch để demo Cursor', 'pending')
 ON CONFLICT (MAPKK) DO NOTHING;
 
 INSERT INTO CT_PHIEUKIEMKE (MAPKK, MASP, SL_HETHONG, SL_THUCTE, LYDO) VALUES

@@ -9,10 +9,17 @@ const roleOptions = [
     { label: 'NV Xuất kho', value: 2 },
 ];
 
+const demoAccounts = [
+    { key: 'manager', label: 'Quản lý', email: 'quanly@gmail.com', password: '123456' },
+    { key: 'inbound', label: 'NV Nhập kho', email: 'nhapkho@gmail.com', password: '123456' },
+    { key: 'outbound', label: 'NV Xuất kho', email: 'xuatkho@gmail.com', password: '123456' },
+];
+
 const LoginPage = () => {
     const { authError, login, register, user } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [selectedDemoAccount, setSelectedDemoAccount] = useState(demoAccounts[0].key);
     const [loginForm] = Form.useForm();
     const [registerForm] = Form.useForm();
 
@@ -37,6 +44,12 @@ const LoginPage = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const selectDemoAccount = (accountKey: string) => {
+        const account = demoAccounts.find((item) => item.key === accountKey) ?? demoAccounts[0];
+        setSelectedDemoAccount(account.key);
+        loginForm.setFieldsValue({ email: account.email, password: account.password });
     };
 
     const handleRegister = async () => {
@@ -83,16 +96,33 @@ const LoginPage = () => {
                         items={[
                             {
                                 key: 'login',
-                                label: 'Đăng nhập',
-                                children: (
-                                    <Form form={loginForm} layout="vertical">
-                                        <Form.Item
-                                            name="email"
-                                            label="Gmail / Email"
-                                            rules={[{ required: true, type: 'email' }]}
-                                        >
-                                            <Input placeholder="quanly@ie103.local" />
-                                        </Form.Item>
+	                                label: 'Đăng nhập',
+	                                children: (
+	                                    <Form form={loginForm} layout="vertical">
+                                            <Form.Item label="Tài khoản đăng nhập">
+                                                <Radio.Group
+                                                    value={selectedDemoAccount}
+                                                    optionType="button"
+                                                    buttonStyle="solid"
+                                                    onChange={(event) => selectDemoAccount(event.target.value)}
+                                                    options={demoAccounts.map((account) => ({
+                                                        label: account.label,
+                                                        value: account.key,
+                                                    }))}
+                                                    style={{
+                                                        display: 'grid',
+                                                        gridTemplateColumns: 'repeat(3, 1fr)',
+                                                    }}
+                                                />
+                                            </Form.Item>
+
+	                                        <Form.Item
+	                                            name="email"
+	                                            label="Gmail / Email"
+	                                            rules={[{ required: true, type: 'email' }]}
+	                                        >
+	                                            <Input placeholder="quanly@gmail.com" />
+	                                        </Form.Item>
 
                                         <Form.Item
                                             name="password"
