@@ -1,46 +1,109 @@
-# Getting Started with Create React App
+# IE103 Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Frontend cho hệ thống quản lý kho IE103. Ứng dụng dùng React, TypeScript và Ant Design để quản lý sản phẩm, đối tác, nhân viên, nhập kho, xuất kho, kiểm kê, dashboard và lịch sử đơn.
 
-## Available Scripts
+## Công nghệ
 
-In the project directory, you can run:
+- React 19
+- TypeScript
+- React Router
+- Ant Design
+- Axios
+- Create React App / React Scripts
 
-### `npm start`
+## Cấu hình môi trường
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+File `.env` local nằm trong thư mục `Frontend`.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+```properties
+PORT=3000
+REACT_APP_API_BASE_URL=http://localhost:8080
+REACT_APP_NAME=IE103
+REACT_APP_ENV=local
+```
 
-### `npm test`
+Frontend sẽ gọi API theo dạng:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```text
+${REACT_APP_API_BASE_URL}/api
+```
 
-### `npm run build`
+Với cấu hình mặc định, API backend là:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```text
+http://localhost:8080/api
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Cài đặt và chạy
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+cd Frontend
+npm install
+npm start
+```
 
-### `npm run eject`
+Frontend mặc định chạy tại:
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```text
+http://localhost:3000
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Lệnh thường dùng
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```bash
+npm start
+npm run build
+npm test
+npm run lint
+npm run lint:fix
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## Các màn hình chính
 
-## Learn More
+| Đường dẫn | Chức năng |
+| --- | --- |
+| `/login` | Đăng nhập và đăng ký tài khoản |
+| `/warehouse/dashboard` | Tổng quan kho và báo cáo |
+| `/warehouse/categories` | Quản lý loại sản phẩm |
+| `/warehouse/products` | Quản lý sản phẩm |
+| `/warehouse/partners` | Quản lý đối tác |
+| `/warehouse/employees` | Quản lý nhân viên |
+| `/warehouse/inbound` | Lập phiếu nhập và xem chi tiết phiếu nhập |
+| `/warehouse/outbound` | Lập phiếu xuất và xem chi tiết phiếu xuất |
+| `/warehouse/stocktake` | Lập, duyệt và xem chi tiết phiếu kiểm kê |
+| `/warehouse/history` | Xem lịch sử nhập/xuất và chi tiết từng đơn |
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Phân quyền giao diện
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Ứng dụng dùng loại nhân viên để giới hạn một số màn:
+
+| Loại | Vai trò |
+| --- | --- |
+| `0` | Quản lý kho |
+| `1` | Nhân viên nhập kho |
+| `2` | Nhân viên xuất kho |
+
+Một số route như nhân viên, nhập kho và xuất kho được bọc bởi `RequireRole`.
+
+## Build production
+
+```bash
+npm run build
+```
+
+Kết quả build nằm trong:
+
+```text
+Frontend/build
+```
+
+## Lưu ý khi chạy local
+
+- Chạy backend trước tại `http://localhost:8080`.
+- Nếu báo port `3000` đã được dùng:
+
+```bash
+lsof -nP -iTCP:3000 -sTCP:LISTEN
+```
+
+- Nếu đổi backend sang port khác, cập nhật `REACT_APP_API_BASE_URL` trong `Frontend/.env`, sau đó restart frontend.
